@@ -8,7 +8,6 @@ RUNUSER="caesar"
 # - CAESAR OPTIONS
 JOB_OUTDIR=""
 JOB_ARGS=""
-INPUTFILE=""
 
 # - RCLONE OPTIONS
 MOUNT_RCLONE_VOLUME=0
@@ -22,7 +21,7 @@ echo "ARGS: $@"
 for item in "$@"
 do
 	case $item in
-		--runuser=*)
+		--user=*)
     	RUNUSER=`echo $item | /bin/sed 's/[-a-zA-Z0-9]*=//'`
     ;;
 		--joboutdir=*)
@@ -30,9 +29,6 @@ do
     ;;
 		--jobargs=*)
     	JOB_ARGS=`echo "$item" | /bin/sed 's/[-a-zA-Z0-9]*=//'`
-    ;;
-		--inputfile=*)
-    	INPUTFILE=`echo $item | /bin/sed 's/[-a-zA-Z0-9]*=//'`
     ;;
 		--mount-rclone-volume=*)
     	MOUNT_RCLONE_VOLUME=`echo $item | /bin/sed 's/[-a-zA-Z0-9]*=//'`
@@ -60,10 +56,10 @@ done
 
 
 # - Check job args
-if [ "$JOB_ARGS" = "" ]; then
-	echo "ERROR: Empty JOB_ARGS argument (hint: you must specify image at least)!"
-	exit 1
-fi
+#if [ "$JOB_ARGS" = "" ]; then
+#	echo "ERROR: Empty JOB_ARGS argument (hint: you must specify image at least)!"
+#	exit 1
+#fi
 
 
 ###############################
@@ -118,8 +114,7 @@ fi
 ###############################
 ##    SET OPTIONS
 ###############################
-MASKRCNN_DIR="/opt/Software/MaskR-CNN/install"
-#RUN_OPTIONS="--runmode=detect --jobdir=/home/$RUNUSER/mrcnn-job --weights=$MASKRCNN_DIR/share/mrcnn_weights.h5 "
+#RUN_OPTIONS="--runmode=detect --jobdir=/home/$RUNUSER/mrcnn-job --weights=/opt/Software/MaskR-CNN/install/share/mrcnn_weights.h5 "
 RUN_OPTIONS="--runmode=detect --jobdir=/home/$RUNUSER/mrcnn-job "
 if [ "$JOB_OUTDIR" != "" ]; then
 	RUN_OPTIONS="$RUN_OPTIONS --outdir=$JOB_OUTDIR "
@@ -135,8 +130,8 @@ JOB_OPTIONS="$RUN_OPTIONS $JOB_ARGS "
 ##    RUN Mask-RCNN JOB
 ###############################
 # - Define run command & args
-EXE="$MASKRCNN_DIR/bin/run_mrcnn.sh"
-CMD="runuser -l $RUNUSER -g $RUNUSER -c'""$EXE $JOB_OPTIONS""'"
+EXE="/opt/Software/MaskR-CNN/install/bin/run_mrcnn.sh"
+CMD="runuser -l $RUNUSER -g $RUNUSER -c '""export MASKRCNN_DIR=$MASKRCNN_DIR; export PATH=$PATH:$MASKRCNN_DIR/bin; export PYTHONPATH=$MASKRCNN_DIR/lib/python3.6/site-packages/mrcnn-1.0.0-py3.6.egg:$MASKRCNN_DIR/lib/python3.6/site-packages; alias python3=python3.6; echo PYTHONPATH=$PYTHONPATH; which python3; $EXE $JOB_OPTIONS""'"
 
 # - Run job
 echo "INFO: Running job command: $CMD ..."
