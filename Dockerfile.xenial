@@ -52,7 +52,7 @@ ENV MASKRCNN_DIR $MASKRCNN_TOP_DIR/install
 RUN unset PYTHONPATH && pip3.6 install ipython h5py imgaug Pillow cython scipy pyparsing opencv-python matplotlib astropy==2.0.16 scikit-image==0.15.0 scikit-learn==0.23.2 keras==2.2.4 tensorflow==1.13.2 
 
 # - Clone mrcnn
-RUN mkdir -p $MASKRCNN_TOP_DIR $MASKRCNN_DIR $MASKRCNN_DIR/lib/python3.6/site-packages
+RUN mkdir -p $MASKRCNN_TOP_DIR $MASKRCNN_DIR $MASKRCNN_DIR/share $MASKRCNN_DIR/lib/python3.6/site-packages
 RUN cd $MASKRCNN_TOP_DIR && git clone https://github.com/SKA-INAF/mrcnn.git && cd $MASKRCNN_TOP_DIR/mrcnn && git pull origin master
 
 # - Build & install
@@ -60,7 +60,8 @@ ENV PYTHONPATH $MASKRCNN_DIR/lib/python3.6/site-packages/
 RUN cd $MASKRCNN_TOP_DIR/mrcnn && \
     python3.6 setup.py sdist bdist_wheel && \
     python3.6 setup.py build && \
-    python3.6 setup.py install --prefix=$MASKRCNN_DIR
+    python3.6 setup.py install --prefix=$MASKRCNN_DIR && \
+    cp share/* $MASKRCNN_DIR/share
 
 ######################################
 ##     SET VARS
