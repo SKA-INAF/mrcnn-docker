@@ -1,0 +1,118 @@
+FROM ubuntu:16.04
+MAINTAINER Simone Riggi "simone.riggi@gmail.com"
+
+######################################
+##   DEFINE CUSTOMIZABLE ARGS/ENVS
+######################################
+ARG USER_ARG=caesar
+ENV USER $USER_ARG
+
+ARG JOB_OPTIONS_ARG=""
+ENV JOB_OPTIONS $JOB_OPTIONS_ARG
+
+ARG JOB_OUTDIR_ARG=""
+ENV JOB_OUTDIR $JOB_OUTDIR_ARG
+
+
+ARG MOUNT_RCLONE_VOLUME_ARG=0
+ENV MOUNT_RCLONE_VOLUME $MOUNT_RCLONE_VOLUME_ARG
+
+ARG MOUNT_VOLUME_PATH_ARG="/mnt/storage"
+ENV MOUNT_VOLUME_PATH $MOUNT_VOLUME_PATH_ARG
+
+ARG RCLONE_REMOTE_STORAGE_ARG="neanias-nextcloud"
+ENV RCLONE_REMOTE_STORAGE $RCLONE_REMOTE_STORAGE_ARG
+
+ARG RCLONE_REMOTE_STORAGE_PATH_ARG="."
+ENV RCLONE_REMOTE_STORAGE_PATH $RCLONE_REMOTE_STORAGE_PATH_ARG
+
+ARG RCLONE_MOUNT_WAIT_TIME_ARG=10
+ENV RCLONE_MOUNT_WAIT_TIME $RCLONE_MOUNT_WAIT_TIME_ARG
+
+ENV PYTHONPATH_BASE ${PYTHONPATH}
+
+##########################################################
+##     INSTALL SYS LIBS (IF NOT PRESENT IN BASE IMAGE
+##########################################################
+
+# - Install OS packages
+RUN apt-get update && apt-get install -y software-properties-common apt-utils curl binutils libtool pkg-config build-essential autoconf automake debconf-utils software-properties-common dpkg-dev git cmake wget bzip2 nano unzip locate less ca-certificates iputils-ping nmap dnsutils 
+
+# - Install python3.6
+RUN unset PYTHONPATH && add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+RUN apt-get install -y python3.6 python3.6-dev 
+
+# - Install pip3.6
+RUN unset PYTHONPATH && curl https://bootstrap.pypa.io/get-pip.py | python3.6
+
+# - Install packages
+RUN apt-get update && apt-get --no-install-recommends install -y libcurl3 openssl libssl-dev uuid-dev libcap-dev libpcre3-dev util-linux openssh-client openssh-server
+
+
+######################################
+##     INSTALL RCLONE
+######################################
+# - Install fuse
+RUN apt-get update && apt-get --no-install-recommends install -y fuse
+
+# - Install rclone
+RUN curl https://rclone.org/install.sh | bash
+
+##########################################################
+##     CREATE USER
+##########################################################
+
+# - Create user & set permissions
+RUN adduser --disabled-password --gecos "" $USER && \
+    mkdir -p /home/$USER && \
+    chown -R $USER:$USER /home/$USER
+
+
+######################################
+##     INSTALL MASK RCNN
+######################################
+ENV MASKRCNN_DIR /opt/Software/MaskR-CNN
+ENV MASKRCNN_INSTALL_DIR $MASKRCNN_DIR/install
+
+# - Install dependencies
+RUN unset PYTHONPATH && pip3.6 install h5py imgaug Pillow cython scipy pyparsing matplotlib astropy==2.0.16 scikit-image==0.15.0 scikit-learn==0.23.2 keras==2.2.4 tensorflow==1.13.2 
+
+# - Clone mrcnn
+RUN mkdir -p $MASKRCNN_DIR $MASKRCNN_INSTALL_DIR $MASKRCNN_INSTALL_DIR/lib/python3.6/site-packages
+RUN cd $MASKRCNN_DIR && git clone https://github.com/SKA-INAF/mrcnn.git && cd $MASKRCNN_DIR/mrcnn && git pull origin master
+
+# - Build & install
+ENV PYTHONPATH $MASKRCNN_INSTALL_DIR/lib/python3.6/site-packages/
+RUN cd $MASKRCNN_DIR/mrcnn && \
+    python3.6 setup.py sdist bdist_wheel && \
+    python3.6 setup.py build && \
+    python3.6 setup.py install --prefix=$MASKRCNN_INSTALL_DIR
+
+
+######################################
+##     SET VARS
+######################################
+# - Set PATH vars
+ENV PATH $MASKRCNN_INSTALL_DIR/bin:$PATH
+ENV PYTHONPATH $MASKRCNN_INSTALL_DIR/lib/python3.6/site-packages/mrcnn-1.0.0-py3.6.egg:$PYTHONPATH
+
+RUN echo "export PATH=$PATH" >> /home/$USER/.profile
+RUN echo "export PYTHONPATH=$PYTHONPATH" >> /home/$USER/.profile
+
+RUN echo "export PYTHONPATH=${PYTHONPATH_BASE}:$PYTHONPATH" >> /etc/profile.d/setupSoft.sh
+RUN chmod +x /etc/profile.d/setupSoft.sh
+RUN echo "PYTHONPATH_BASE=$PYTHONPATH"
+
+
+######################################
+##     RUN
+######################################
+# - Copy run script
+COPY run_job.sh /home/$USER/run_job.sh
+RUN chmod +x /home/$USER/run_job.sh
+
+# - Run container
+CMD ["/home/$USER/run_job.sh --runuser=$USER --jobargs=\"$JOB_OPTIONS\" --joboutdir=$JOB_OUTDIR --mount-rclone-volume=$MOUNT_RCLONE_VOLUME --mount-volume-path=$MOUNT_VOLUME_PATH --rclone-remote-storage=$RCLONE_REMOTE_STORAGE --rclone-remote-storage-path=$RCLONE_REMOTE_STORAGE_PATH --rclone-mount-wait=$RCLONE_MOUNT_WAIT_TIME"]
+
+
