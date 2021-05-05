@@ -7,28 +7,6 @@ MAINTAINER Simone Riggi "simone.riggi@gmail.com"
 ARG USER_ARG="caesar"
 ENV USER $USER_ARG
 
-ARG JOB_OPTIONS_ARG=""
-ENV JOB_OPTIONS $JOB_OPTIONS_ARG
-
-ARG JOB_OUTDIR_ARG=""
-ENV JOB_OUTDIR $JOB_OUTDIR_ARG
-
-
-ARG MOUNT_RCLONE_VOLUME_ARG=0
-ENV MOUNT_RCLONE_VOLUME $MOUNT_RCLONE_VOLUME_ARG
-
-ARG MOUNT_VOLUME_PATH_ARG="/mnt/storage"
-ENV MOUNT_VOLUME_PATH $MOUNT_VOLUME_PATH_ARG
-
-ARG RCLONE_REMOTE_STORAGE_ARG="neanias-nextcloud"
-ENV RCLONE_REMOTE_STORAGE $RCLONE_REMOTE_STORAGE_ARG
-
-ARG RCLONE_REMOTE_STORAGE_PATH_ARG="."
-ENV RCLONE_REMOTE_STORAGE_PATH $RCLONE_REMOTE_STORAGE_PATH_ARG
-
-ARG RCLONE_MOUNT_WAIT_TIME_ARG=10
-ENV RCLONE_MOUNT_WAIT_TIME $RCLONE_MOUNT_WAIT_TIME_ARG
-
 ENV PYTHONPATH_BASE ${PYTHONPATH}
 
 ##########################################################
@@ -58,21 +36,10 @@ RUN apt-get update && apt-get --no-install-recommends install -y libcurl3 openss
 ##########################################################
 ##     CREATE USER
 ##########################################################
-
 # - Create user & set permissions
 RUN adduser --disabled-password --gecos "" $USER && \
     mkdir -p /home/$USER && \
     chown -R $USER:$USER /home/$USER
-
-
-######################################
-##     INSTALL RCLONE
-######################################
-# - Install fuse
-RUN apt-get update && apt-get --no-install-recommends install -y fuse
-
-# - Install rclone
-RUN curl https://rclone.org/install.sh | bash
 
 
 ######################################
@@ -95,7 +62,6 @@ RUN cd $MASKRCNN_TOP_DIR/mrcnn && \
     python3.6 setup.py build && \
     python3.6 setup.py install --prefix=$MASKRCNN_DIR
 
-
 ######################################
 ##     SET VARS
 ######################################
@@ -110,16 +76,4 @@ RUN echo "export PYTHONPATH=${PYTHONPATH_BASE}:$PYTHONPATH" >> /etc/profile.d/se
 RUN chmod +x /etc/profile.d/setupSoft.sh
 RUN echo "PYTHONPATH_BASE=$PYTHONPATH"
 
-
-######################################
-##     RUN
-######################################
-# - Copy run script
-COPY run_job.sh /home/$USER/run_job.sh
-RUN chmod +x /home/$USER/run_job.sh
-
-# - Run container
-CMD ["sh","-c","/home/$USER/run_job.sh --user=$USER --jobargs=\"$JOB_OPTIONS\" --joboutdir=$JOB_OUTDIR --mount-rclone-volume=$MOUNT_RCLONE_VOLUME --mount-volume-path=$MOUNT_VOLUME_PATH --rclone-remote-storage=$RCLONE_REMOTE_STORAGE --rclone-remote-storage-path=$RCLONE_REMOTE_STORAGE_PATH --rclone-mount-wait=$RCLONE_MOUNT_WAIT_TIME"]
-#CMD ["/home/$USER/run_job.sh"]
-#CMD ["hostname"]
 
