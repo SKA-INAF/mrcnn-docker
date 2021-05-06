@@ -33,6 +33,9 @@ RUN rm /usr/bin/python3 && ln -s /usr/bin/python3.6 /usr/bin/python3
 # - Install packages
 RUN apt-get update && apt-get --no-install-recommends install -y libcurl3 openssl libssl-dev uuid-dev libcap-dev libpcre3-dev util-linux openssh-client openssh-server libsm6 libxext6 ffmpeg libfontconfig1 libxrender1 libgl1-mesa-glx
 
+# - Install git-lsf (needed otherwise large hdf5 data in repo are given a wrong signature and failed to be read)
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && apt-get update && apt-get install git-lfs
+
 ##########################################################
 ##     CREATE USER
 ##########################################################
@@ -53,7 +56,7 @@ RUN unset PYTHONPATH && pip3.6 install ipython h5py imgaug Pillow cython scipy p
 
 # - Clone mrcnn
 RUN mkdir -p $MASKRCNN_TOP_DIR $MASKRCNN_DIR $MASKRCNN_DIR/share $MASKRCNN_DIR/lib/python3.6/site-packages
-RUN cd $MASKRCNN_TOP_DIR && git clone https://github.com/SKA-INAF/mrcnn.git && cd $MASKRCNN_TOP_DIR/mrcnn && git pull origin master
+RUN cd $MASKRCNN_TOP_DIR && git clone https://github.com/SKA-INAF/mrcnn.git && cd $MASKRCNN_TOP_DIR/mrcnn && git pull origin master && git lfs pull
 
 # - Build & install
 ENV PYTHONPATH $MASKRCNN_DIR/lib/python3.6/site-packages/
