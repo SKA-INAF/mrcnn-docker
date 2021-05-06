@@ -52,7 +52,7 @@ ENV MASKRCNN_TOP_DIR /opt/Software/MaskR-CNN
 ENV MASKRCNN_DIR $MASKRCNN_TOP_DIR/install
 
 # - Install dependencies
-RUN unset PYTHONPATH && pip3.6 install ipython h5py imgaug Pillow cython scipy pyparsing opencv-python matplotlib astropy==2.0.16 scikit-image==0.15.0 scikit-learn==0.23.2 keras==2.2.4 tensorflow==1.13.2 
+RUN unset PYTHONPATH && pip3.6 install ipython h5py==2.10.0 imgaug Pillow cython scipy pyparsing opencv-python matplotlib astropy==2.0.16 scikit-image==0.15.0 scikit-learn==0.23.2 keras==2.2.4 tensorflow==1.13.2 
 
 # - Clone mrcnn
 RUN mkdir -p $MASKRCNN_TOP_DIR $MASKRCNN_DIR $MASKRCNN_DIR/share $MASKRCNN_DIR/lib/python3.6/site-packages
